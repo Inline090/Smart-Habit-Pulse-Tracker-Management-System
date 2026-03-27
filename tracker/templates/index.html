@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HabitPulse</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+
+    <h2 class="text-center mb-4">HabitPulse Tracker</h2>
+
+    <!-- Input -->
+    <div class="card p-3 mb-4">
+        <input type="text" id="habitInput" class="form-control mb-2" placeholder="Enter habit">
+        <button id="addBtn" class="btn btn-primary">Add Habit</button>
+    </div>
+
+    <!-- Habit List -->
+    <div id="habitList" class="list-group"></div>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function loadHabits() {
+    $.get("/api/habits/", function(data) {
+        $("#habitList").empty();
+        data.forEach(habit => {
+            let checked = habit.completed ? "checked" : "";
+            $("#habitList").append(`
+                <div class="list-group-item d-flex justify-content-between align-items-center" id="habit-${habit.id}">
+                    <div>
+                        <input type="checkbox" class="completeCheckbox" data-id="${habit.id}" ${checked}>
+                        <span class="${habit.completed ? 'text-decoration-line-through' : ''}">${habit.name}</span>
+                        <small class="text-muted ms-2">${habit.created_at}</small>
+                    </div>
+                    <button class="btn btn-danger btn-sm deleteBtn" data-id="${habit.id}">Delete</button>
+                </div>
+            `);
+        });
+    });
+}
+
+$(document).ready(function() {
+    loadHabits();  // load habits on page load
+
+    $("#addBtn").click(function() {
+        let habitName = $("#habitInput").val().trim();
+        if(habitName === "") { alert("Enter habit!"); return; }
+
+        $.ajax({
+            url: "/add/",
+            type: "POST",
+            data: JSON.stringify({ name: habitName }),
+            contentType: "application/json",
+            success: function(response) {
+                if(response.status === "success") {
+                    $("#habitInput").val("");
+                    loadHabits();
+                } else {
+                    alert("Error: " + response.error);
+                }
+            }
+        });
+    });
+
+    // Mark habit as completed
+    $(document).on("change", ".completeCheckbox", function() {
+        let id = $(this).data("id");
+        let completed = $(this).is(":checked");
+        $.ajax({
+            url: `/api/habits/${id}/`,
+            type: "PUT",
+            data: JSON.stringify({ completed: completed }),
+            contentType: "application/json",
+            success: function() { loadHabits(); }
+        });
+    });
+
+    // Delete habit
+    $(document).on("click", ".deleteBtn", function() {
+        let id = $(this).data("id");
+        $.ajax({
+            url: `/api/habits/${id}/`,
+            type: "DELETE",
+            success: function() { loadHabits(); }
+        });
+    });
+});
+</script>
+
+</body>
+</html>
