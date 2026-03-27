@@ -10,7 +10,4 @@ urlpatterns = [
 
     path('api/dashboard/', views.dashboard_data, name='dashboard'),
 
-    # NEW: User Authentication
-    path('api/register/', views.register, name='register'),
-    path('api/login/', views.user_login, name='login'),
 ]
