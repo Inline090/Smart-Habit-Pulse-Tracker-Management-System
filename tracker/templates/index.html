@@ -8,17 +8,42 @@
 
 <div class="container mt-5">
 
-    <h2 class="text-center mb-4">HabitPulse Tracker</h2>
+    <h2 class="text-center mb-4 text-primary">✨ HabitPulse Tracker</h2>
+
+    <!--  DASHBOARD -->
+    <div class="row text-center mb-4">
+        <div class="col">
+            <div class="card p-3 bg-primary text-white">
+                <h5>Total</h5>
+                <h3 id="totalCount">0</h3>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card p-3 bg-success text-white">
+                <h5>Completed</h5>
+                <h3 id="completedCount">0</h3>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card p-3 bg-warning text-dark">
+                <h5>Pending</h5>
+                <h3 id="pendingCount">0</h3>
+            </div>
+        </div>
+    </div>
 
     <!-- Input -->
-    <div class="card p-3 mb-4">
+    <div class="card p-3 mb-3">
         <input type="text" id="habitInput" class="form-control mb-2" placeholder="Enter habit">
         <button id="addBtn" class="btn btn-primary">Add Habit</button>
     </div>
 
-    <!-- ✅ STEP 1: FILTER BUTTONS ADDED -->
+    <!-- Message -->
+    <div id="messageBox" class="text-center mb-3"></div>
+
+    <!-- Filters -->
     <div class="mb-3 text-center">
-        <button class="btn btn-secondary filterBtn" data-filter="all">All</button>
+        <button class="btn btn-secondary filterBtn active" data-filter="all">All</button>
         <button class="btn btn-success filterBtn" data-filter="completed">Completed</button>
         <button class="btn btn-warning filterBtn" data-filter="pending">Pending</button>
     </div>
@@ -31,38 +56,66 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 
-let currentFilter = "all"; // ✅ filter variable
+let currentFilter = "all";
 
+//  LOAD DASHBOARD
+function loadDashboard() {
+    $.get("/api/dashboard/", function(data) {
+        $("#totalCount").text(data.total);
+        $("#completedCount").text(data.completed);
+        $("#pendingCount").text(data.pending);
+    });
+}
+
+// Load habits
 function loadHabits() {
     $.get("/api/habits/", function(data) {
         $("#habitList").empty();
+
+        let visibleCount = 0;
+
         data.forEach(habit => {
 
-            // ✅ FILTER LOGIC
             if (currentFilter === "completed" && !habit.completed) return;
             if (currentFilter === "pending" && habit.completed) return;
 
+            visibleCount++;
+
             let checked = habit.completed ? "checked" : "";
+
             $("#habitList").append(`
-                <div class="list-group-item d-flex justify-content-between align-items-center" id="habit-${habit.id}">
+                <div class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <input type="checkbox" class="completeCheckbox" data-id="${habit.id}" ${checked}>
-                        <span class="${habit.completed ? 'text-decoration-line-through' : ''}">${habit.name}</span>
+                        <span class="${habit.completed ? 'text-decoration-line-through' : ''}">
+                            ${habit.name}
+                        </span>
                         <small class="text-muted ms-2">${habit.created_at}</small>
                     </div>
                     <button class="btn btn-danger btn-sm deleteBtn" data-id="${habit.id}">Delete</button>
                 </div>
             `);
         });
+
+        if (visibleCount === 0) {
+            $("#habitList").html('<div class="text-center text-muted">No habits found</div>');
+        }
     });
 }
 
 $(document).ready(function() {
-    loadHabits();
 
+    loadHabits();
+    loadDashboard();
+
+    // Add habit
     $("#addBtn").click(function() {
         let habitName = $("#habitInput").val().trim();
-        if(habitName === "") { alert("Enter habit!"); return; }
+
+        if(habitName === "") {
+            $("#messageBox").html('<div class="alert alert-warning">Enter a habit!</div>');
+            return;
+        }
 
         $.ajax({
             url: "/add/",
@@ -72,42 +125,54 @@ $(document).ready(function() {
             success: function(response) {
                 if(response.status === "success") {
                     $("#habitInput").val("");
+                    $("#messageBox").html('<div class="alert alert-success">Habit added!</div>');
                     loadHabits();
-                } else {
-                    alert("Error: " + response.error);
+                    loadDashboard(); //  update dashboard
                 }
             }
         });
     });
 
-    // ✅ FILTER BUTTON CLICK
+    // Filters
     $(".filterBtn").click(function() {
         currentFilter = $(this).data("filter");
+        $(".filterBtn").removeClass("active");
+        $(this).addClass("active");
         loadHabits();
     });
 
-    // Mark habit as completed
+    // Complete
     $(document).on("change", ".completeCheckbox", function() {
         let id = $(this).data("id");
         let completed = $(this).is(":checked");
+
         $.ajax({
             url: `/api/habits/${id}/`,
             type: "PUT",
             data: JSON.stringify({ completed: completed }),
             contentType: "application/json",
-            success: function() { loadHabits(); }
+            success: function() {
+                loadHabits();
+                loadDashboard(); // update dashboard
+            }
         });
     });
 
-    // Delete habit
+    // Delete
     $(document).on("click", ".deleteBtn", function() {
         let id = $(this).data("id");
+
         $.ajax({
             url: `/api/habits/${id}/`,
             type: "DELETE",
-            success: function() { loadHabits(); }
+            success: function() {
+                $("#messageBox").html('<div class="alert alert-danger">Habit deleted!</div>');
+                loadHabits();
+                loadDashboard(); //  update dashboard
+            }
         });
     });
+
 });
 </script>
 

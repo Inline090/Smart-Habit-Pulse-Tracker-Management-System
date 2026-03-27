@@ -13,10 +13,12 @@ def add_habit(request):
         try:
             data = json.loads(request.body)
             name = data.get("name")
+
             if not name:
                 return JsonResponse({"status": "fail", "error": "Name is required"})
             
             habit = Habit.objects.create(name=name)
+
             return JsonResponse({
                 "status": "success",
                 "habit": {
@@ -28,11 +30,14 @@ def add_habit(request):
             })
         except json.JSONDecodeError:
             return JsonResponse({"status": "fail", "error": "Invalid JSON"})
+    
     return JsonResponse({"status": "fail", "error": "Invalid request method"})
+
 
 def get_habits(request):
     habits = Habit.objects.all().order_by('-created_at')
     data = []
+
     for habit in habits:
         data.append({
             "id": habit.id,
@@ -40,7 +45,9 @@ def get_habits(request):
             "completed": habit.completed,
             "created_at": habit.created_at.strftime("%Y-%m-%d %H:%M:%S")
         })
+
     return JsonResponse(data, safe=False)
+
 
 @csrf_exempt
 def update_habit(request, id):
@@ -60,3 +67,16 @@ def update_habit(request, id):
         return JsonResponse({"status": "success"})
 
     return JsonResponse({"status": "fail", "error": "Invalid request method"})
+
+
+# ✅ DASHBOARD VIEW (NEW)
+def dashboard_data(request):
+    total = Habit.objects.count()
+    completed = Habit.objects.filter(completed=True).count()
+    pending = Habit.objects.filter(completed=False).count()
+
+    return JsonResponse({
+        "total": total,
+        "completed": completed,
+        "pending": pending
+    })
