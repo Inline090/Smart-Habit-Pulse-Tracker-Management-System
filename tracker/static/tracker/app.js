@@ -1,25 +1,30 @@
 let currentFilter = "all";
-const fallbackQuotes = [
-    {
-        text: "Small steps every day build strong habits over time.",
-        author: "Smart Habit Pulse Tracker"
-    },
-    {
-        text: "Consistency matters more than intensity.",
-        author: "Daily Reminder"
-    },
-    {
-        text: "A routine becomes powerful when you repeat it with purpose.",
-        author: "Habit Note"
-    },
-    {
-        text: "Progress grows when you show up again tomorrow.",
-        author: "Focus Log"
-    },
-    {
-        text: "Discipline is often just a decision repeated quietly.",
-        author: "Tracker Console"
-    }
+const quotes = [
+    { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+    { text: "The happiness of your life depends upon the quality of your thoughts.", author: "Marcus Aurelius" },
+    { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca" },
+    { text: "No great thing is created suddenly.", author: "Epictetus" },
+    { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+    { text: "Well done is better than well said.", author: "Benjamin Franklin" },
+    { text: "Knowing is not enough; we must apply. Willing is not enough; we must do.", author: "Johann Wolfgang von Goethe" },
+    { text: "Great works are performed not by strength but by perseverance.", author: "Samuel Johnson" },
+    { text: "The journey of a thousand miles begins with one step.", author: "Lao Tzu" },
+    { text: "If people knew how hard I worked to get my mastery, it would not seem so wonderful at all.", author: "Michelangelo" },
+    { text: "I find that the harder I work, the more luck I seem to have.", author: "Thomas Jefferson" },
+    { text: "Everyone thinks of changing the world, but no one thinks of changing himself.", author: "Leo Tolstoy" },
+    { text: "Even the darkest night will end and the sun will rise.", author: "Victor Hugo" },
+    { text: "Make the most of yourself, for that is all there is of you.", author: "Ralph Waldo Emerson" },
+    { text: "No one is useless in this world who lightens the burden of another.", author: "Charles Dickens" },
+    { text: "We learn wisdom from failure much more than from success.", author: "Samuel Smiles" },
+    { text: "A wise man will make more opportunities than he finds.", author: "Francis Bacon" },
+    { text: "The greatest thing in the world is to know how to belong to oneself.", author: "Michel de Montaigne" },
+    { text: "A good reputation is more valuable than money.", author: "Publilius Syrus" },
+    { text: "Go confidently in the direction of your dreams. Live the life you have imagined.", author: "Henry David Thoreau" },
+    { text: "Success is to be measured not so much by the position that one has reached in life as by the obstacles which he has overcome.", author: "Booker T. Washington" },
+    { text: "The more we do, the more we can do.", author: "William Hazlitt" },
+    { text: "Be content to act, and leave the talking to others.", author: "Baltasar Gracian" },
+    { text: "Waste no more time arguing what a good man should be. Be one.", author: "Marcus Aurelius" },
+    { text: "Energy and persistence conquer all things.", author: "Benjamin Franklin" }
 ];
 const introStorageKey = "smart_habit_pulse_tracker_intro_seen";
 const introLines = [
@@ -34,6 +39,7 @@ const introStepDelay = 560;
 const introEndDelay = 950;
 const metricBarWidth = 20;
 let quoteTypingAnimationId = 0;
+let currentQuoteIndex = 0;
 const dashboardBarState = {
     completedFilled: 0,
     pendingFilled: 0,
@@ -211,6 +217,14 @@ function renderQuote(quote) {
     $("#quoteAuthor").text(`- ${quote.author}`);
 }
 
+function showNextQuote(initialLoad = false) {
+    if (!initialLoad) {
+        currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+    }
+
+    renderQuote(quotes[currentQuoteIndex]);
+}
+
 function renderIntroProgress(step, total) {
     const nextIntroFilled = total ? Math.round((step / total) * metricBarWidth) : 0;
 
@@ -291,41 +305,6 @@ function startIntroSequence() {
         }
 
         finishIntro();
-    });
-}
-
-function setQuoteLoading(isLoading) {
-    const button = $("#newQuoteBtn");
-    button.prop("disabled", isLoading);
-    button.text(isLoading ? "[ LOADING ]" : "[ NEW QUOTE ]");
-}
-
-function loadRandomQuote() {
-    setQuoteLoading(true);
-
-    $.ajax({
-        url: `https://dummyjson.com/quotes/random?ts=${Date.now()}`,
-        method: "GET",
-        timeout: 5000,
-        success: function (data) {
-            if (data && data.quote && data.author) {
-                renderQuote({
-                    text: data.quote,
-                    author: data.author
-                });
-                return;
-            }
-
-            const quote = fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
-            renderQuote(quote);
-        },
-        error: function () {
-            const quote = fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
-            renderQuote(quote);
-        },
-        complete: function () {
-            setQuoteLoading(false);
-        }
     });
 }
 
@@ -477,13 +456,15 @@ function submitHabit() {
 $(document).ready(function () {
     startIntroSequence();
     updateFilterState();
-    loadRandomQuote();
+    showNextQuote(true);
     loadHabits();
     loadDashboard();
     updateTerminalCaret();
 
     $("#addBtn").on("click", submitHabit);
-    $("#newQuoteBtn").on("click", loadRandomQuote);
+    $("#newQuoteBtn").on("click", function () {
+        showNextQuote();
+    });
 
     $("#habitInput").on("keydown", function (event) {
         if (event.key === "Enter") {
